@@ -1,3 +1,4 @@
+// Core/Interfaces/IFileTextExtractor.cs
 namespace Core.Interfaces;
 
 public interface IFileTextExtractor

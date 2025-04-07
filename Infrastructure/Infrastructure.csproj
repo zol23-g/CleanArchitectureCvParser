@@ -6,7 +6,9 @@
 
   <ItemGroup>
     <PackageReference Include="Cohere.Net" Version="1.0.0" />
+    <PackageReference Include="itext7" Version="9.1.0" />
     <PackageReference Include="OpenAI" Version="2.1.0" />
+    <PackageReference Include="Xceed.Words.NET" Version="4.0.25103.5784" />
   </ItemGroup>
 
   <PropertyGroup>
