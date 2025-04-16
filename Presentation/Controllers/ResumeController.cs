@@ -4,6 +4,11 @@ using Core.Entities;
 using Core.Common;
 using Microsoft.AspNetCore.Mvc;
 using Application.DTOs;
+using Application.Features.Resumes.Commands;
+using Application.Features.Resumes.Queries;
+using MediatR;
+
+
 
 namespace Presentation.Controllers
 {
@@ -27,33 +32,31 @@ namespace Presentation.Controllers
         }
 
         [HttpPost("parse-file")]
-        public async Task<ActionResult<ApiResponse<ResumeDto>>> ParseFile(IFormFile file)
+        public async Task<ActionResult<ApiResponse<ResumeDto>>> ParseFile(
+            IFormFile file,
+            [FromServices] IMediator mediator)
         {
             if (file == null || file.Length == 0)
                 return BadRequest(ApiResponse<ResumeDto>.Fail("No file uploaded."));
 
-            string fileText;
-            using (var stream = file.OpenReadStream())
+            using var memory = new MemoryStream();
+            await file.CopyToAsync(memory);
+            var fileBytes = memory.ToArray();
+
+            Resume parsedResume;
+            try
             {
-                if (file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                {
-                    fileText = await _fileTextExtractor.ExtractPdfAsync(stream);
-                }
-                else if (file.FileName.EndsWith(".docx", StringComparison.OrdinalIgnoreCase))
-                {
-                    fileText = await _fileTextExtractor.ExtractDocxAsync(stream);
-                }
-                else
-                {
-                    return BadRequest(ApiResponse<ResumeDto>.Fail("Unsupported file type. Only .pdf and .docx are allowed."));
-                }
+                parsedResume = await mediator.Send(new ParseResumeCommand(fileBytes, file.FileName));
+            }
+            catch (NotSupportedException ex)
+            {
+                return BadRequest(ApiResponse<ResumeDto>.Fail(ex.Message));
             }
 
-            var parsedResume = await _parser.ParseAsync(fileText);
-            await _resumeRepository.AddAsync(parsedResume);
-
-            return Ok(ApiResponse<ResumeDto>.Ok(MapToDto(parsedResume)));
+            var dto = MapToDto(parsedResume);
+            return Ok(ApiResponse<ResumeDto>.Ok(dto));
         }
+
 
         [HttpGet]
         public async Task<ActionResult<ApiResponse<PagedResult<ResumeDto>>>> GetAllPaged(
@@ -101,14 +104,19 @@ namespace Presentation.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<ResumeDto>>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<ResumeDto>>> GetById(
+            int id,
+            [FromServices] IMediator mediator)
         {
-            var resume = await _resumeRepository.GetByIdAsync(id);
+            var resume = await mediator.Send(new GetResumeByIdQuery(id));
+
             if (resume == null)
                 return NotFound(ApiResponse<ResumeDto>.Fail($"Resume with ID {id} not found."));
 
-            return Ok(ApiResponse<ResumeDto>.Ok(MapToDto(resume)));
+            var dto = MapToDto(resume);
+            return Ok(ApiResponse<ResumeDto>.Ok(dto));
         }
+
 
         [HttpPut("{id}")]
         public async Task<ActionResult<ApiResponse<string>>> Update(int id, [FromBody] ResumeDto updatedDto)
