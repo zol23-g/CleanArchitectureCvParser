@@ -44,6 +44,7 @@ namespace Application.Features.Resumes.Commands
             await _publishEndpoint.Publish<IResumeParsed>(new
             {
                 ResumeId = resume.Id,
+                Name = resume.Name,
                 Email = resume.Email
             }, cancellationToken);
 
