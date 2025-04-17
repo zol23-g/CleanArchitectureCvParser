@@ -8,7 +8,7 @@ namespace Core.Entities
 {
     public class Resume
     {
-        [Key]
+        
         public int Id { get; set; }
         public string Name { get; set; }
         public string Email { get; set; }
@@ -20,7 +20,7 @@ namespace Core.Entities
 
     public class ExperienceItem
     {
-        [Key]
+        
         public int Id { get; set; }
 
         public string Position { get; set; }
